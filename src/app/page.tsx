@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
@@ -118,9 +119,19 @@ export default function HomePage() {
         <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
             {/* Header / Nav */}
             <header className="container mx-auto px-6 py-4 flex justify-between items-center relative z-20">
-                <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
-                    InterView16
-                </div>
+                <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+                    <div className="w-10 h-10 relative">
+                        <Image
+                            src="/logo.svg"
+                            alt="InterView16 Logo"
+                            fill
+                            className="object-contain"
+                        />
+                    </div>
+                    <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+                        InterView16
+                    </div>
+                </Link>
                 <div>
                     {!authLoading && (
                         user ? (
