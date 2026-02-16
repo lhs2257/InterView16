@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Send, Clock, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
@@ -39,6 +40,18 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
     const [currentAiMessage, setCurrentAiMessage] = useState('');
     const [elapsedTime, setElapsedTime] = useState(0);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const greetingPlayedRef = useRef(false);
+
+    // Check auth on load
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/login');
+            }
+        };
+        checkAuth();
+    }, []);
 
     // STT Hook
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
@@ -158,7 +171,12 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
         };
 
         setMessages([greetingMessage]);
-        if (!isMuted) speak(greeting);
+
+        // Only play TTS once using ref to prevent duplicate in Strict Mode
+        if (!isMuted && !greetingPlayedRef.current) {
+            greetingPlayedRef.current = true;
+            speak(greeting);
+        }
     };
 
     const sendMessage = async () => {
@@ -185,7 +203,7 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
                 body: JSON.stringify({
                     sessionId: sessionId,
                     userMessage: inputText,
-                    mbtiType: sessionData?.persona?.mbti_type,
+                    mbti_type: sessionData?.persona?.mbti_type,
                     resumeId: sessionData?.session?.resume_id,
                     conversationHistory: messages.map(m => ({ role: m.role, content: m.content })),
                 }),

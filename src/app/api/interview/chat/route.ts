@@ -18,12 +18,12 @@ export async function POST(request: NextRequest) {
         const {
             sessionId,
             userMessage,
-            mbtiType,
+            mbti_type,
             resumeId,
             conversationHistory = [],
         } = body;
 
-        if (!sessionId || !mbtiType || !resumeId) {
+        if (!sessionId || !mbti_type || !resumeId) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
                 { status: 400 }
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
         // 2. 면접 컨텍스트 구성
         const messages = buildInterviewContext(
-            mbtiType as MBTIType,
+            mbti_type as MBTIType,
             resumeContext,
             conversationHistory
         );

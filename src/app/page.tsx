@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
-import { Upload, FileText, TrendingUp, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Upload, FileText, TrendingUp, CheckCircle, AlertCircle, ArrowLeft, Lock } from 'lucide-react';
 
 export default function HomePage() {
     const router = useRouter();
@@ -14,6 +15,21 @@ export default function HomePage() {
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [resumeId, setResumeId] = useState<string | null>(null);
     const [uploadMode, setUploadMode] = useState(false);
+    const [showResumeOptions, setShowResumeOptions] = useState(false);
+
+    // Auth state
+    const [user, setUser] = useState<any>(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
+
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
+            setAuthLoading(false);
+        };
+        checkUser();
+    }, []);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -61,9 +77,10 @@ export default function HomePage() {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            // Generate a valid UUID for temporary user
-            const tempUserId = crypto.randomUUID();
-            formData.append('userId', tempUserId);
+
+            // Use authenticated user ID if available, otherwise temp ID (legacy)
+            const userId = user?.id || crypto.randomUUID();
+            formData.append('userId', userId);
 
             const response = await fetch('/api/resume/upload', {
                 method: 'POST',
@@ -99,8 +116,41 @@ export default function HomePage() {
 
     return (
         <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
+            {/* Header / Nav */}
+            <header className="container mx-auto px-6 py-4 flex justify-between items-center relative z-20">
+                <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+                    InterView16
+                </div>
+                <div>
+                    {!authLoading && (
+                        user ? (
+                            <div className="flex items-center gap-4">
+                                <span className="text-base mr-4 text-gray-400 hidden md:inline">{user.email}</span>
+                                <button
+                                    onClick={async () => {
+                                        await supabase.auth.signOut();
+                                        setUser(null);
+                                        router.refresh();
+                                    }}
+                                    className="px-6 py-3 text-base bg-gray-800 hover:bg-gray-700 rounded-full transition-colors"
+                                >
+                                    로그아웃
+                                </button>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="px-8 py-3 text-base bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
+                            >
+                                로그인
+                            </Link>
+                        )
+                    )}
+                </div>
+            </header>
+
             {/* Hero Section */}
-            <section className="container mx-auto px-6 pt-20 pb-32">
+            <section className="container mx-auto px-6 pt-10 pb-20">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -109,86 +159,126 @@ export default function HomePage() {
                 >
                     <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
                         <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-                            당신의 이력서를 가장 잘 파고들
-                        </span>
-                        <br />
-                        <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-                            면접관은 누구입니까?
+                            나에게 맞는 면접관을 선택하세요
                         </span>
                     </h1>
 
-                    <p className="text-xl md:text-2xl text-gray-400 mb-12">
+                    <p className="text-xl md:text-2xl text-gray-400 mb-4">
                         16가지 MBTI 성향의 AI 면접관과 함께하는 실전 면접 연습
                     </p>
 
-                    <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        <Link
-                            href="/personas"
-                            className="inline-block px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/50"
+                    {!showResumeOptions && (
+                        <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
-                            면접 시작하기
-                        </Link>
-                    </motion.div>
+                            {user ? (
+                                <button
+                                    onClick={() => setShowResumeOptions(true)}
+                                    className="inline-block px-12 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/50"
+                                >
+                                    면접 시작하기
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/login"
+                                    className="inline-block px-12 py-4 bg-gray-800 border border-gray-700 rounded-full text-lg font-semibold hover:bg-gray-700 transition-all"
+                                >
+                                    로그인하고 시작하기
+                                </Link>
+                            )}
+                        </motion.div>
+                    )}
                 </motion.div>
             </section>
 
             {/* Resume Action Section */}
-            <section className="container mx-auto px-6 py-12">
+            <section className="container mx-auto px-6 py-6">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                     className="max-w-4xl mx-auto"
                 >
-                    {!uploadMode ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Option 1: PDF Upload */}
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setUploadMode(true)}
-                                className="glass-card p-10 rounded-3xl cursor-pointer border border-gray-700 hover:border-blue-500 transition-all group text-center"
+                    {authLoading ? (
+                        <div className="flex justify-center p-12">
+                            <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    ) : !user ? (
+                        <div className="text-center p-12 glass-card rounded-3xl border border-gray-800">
+                            <Lock className="w-12 h-12 mx-auto text-gray-500 mb-4" />
+                            <h3 className="text-2xl font-bold mb-2">로그인이 필요합니다</h3>
+                            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                                AI 면접 서비스를 이용하려면 로그인이 필요합니다.<br />
+                                테스트 계정으로 로그인해주세요.
+                            </p>
+                            <Link
+                                href="/login"
+                                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-bold hover:shadow-lg transition-all"
                             >
-                                <div className="w-20 h-20 mx-auto bg-blue-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-colors">
-                                    <FileText className="w-10 h-10 text-blue-400" />
-                                </div>
-                                <h3 className="text-2xl font-bold mb-3">내 이력서 파일로 시작</h3>
-                                <p className="text-gray-400 mb-6">
-                                    PDF 이력서를 업로드하면 AI가 자동으로 분석하여 면접을 준비합니다.
+                                로그인 페이지로 이동
+                            </Link>
+                        </div>
+                    ) : !showResumeOptions ? (
+                        // Initial state - show nothing
+                        null
+                    ) : !uploadMode ? (
+                        // Show resume selection options
+                        <div>
+                            <div className="text-center mb-6">
+                                <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+                                    이력서를 어떻게 준비하시겠어요?
+                                </h2>
+                                <p className="text-gray-400">
+                                    두 가지 방법 중 하나를 선택해주세요
                                 </p>
-                                <span className="text-blue-400 font-semibold group-hover:underline">
-                                    업로드하러 가기 &rarr;
-                                </span>
-                            </motion.div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Option 1: PDF Upload */}
+                                <motion.div
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setUploadMode(true)}
+                                    className="glass-card p-10 rounded-3xl cursor-pointer border border-gray-700 hover:border-blue-500 transition-all group text-center"
+                                >
+                                    <div className="w-20 h-20 mx-auto bg-blue-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-colors">
+                                        <FileText className="w-10 h-10 text-blue-400" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold mb-3">내 이력서 파일로 시작</h3>
+                                    <p className="text-gray-400 mb-6">
+                                        PDF 이력서를 업로드하면 AI가 자동으로 분석하여 면접을 준비합니다.
+                                    </p>
+                                    <span className="text-blue-400 font-semibold group-hover:underline">
+                                        업로드하러 가기 &rarr;
+                                    </span>
+                                </motion.div>
 
-                            {/* Option 2: Manual Create */}
-                            <motion.div
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => router.push('/resume/create')}
-                                className="glass-card p-10 rounded-3xl cursor-pointer border border-gray-700 hover:border-purple-500 transition-all group text-center"
-                            >
-                                <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-colors">
-                                    <div className="relative">
-                                        <FileText className="w-10 h-10 text-purple-400" />
-                                        <div className="absolute -right-2 -bottom-2 bg-purple-600 rounded-full p-1">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                                            </svg>
+                                {/* Option 2: Manual Create */}
+                                <motion.div
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => router.push('/resume/create')}
+                                    className="glass-card p-10 rounded-3xl cursor-pointer border border-gray-700 hover:border-purple-500 transition-all group text-center"
+                                >
+                                    <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-colors">
+                                        <div className="relative">
+                                            <FileText className="w-10 h-10 text-purple-400" />
+                                            <div className="absolute -right-2 -bottom-2 bg-purple-600 rounded-full p-1">
+                                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <h3 className="text-2xl font-bold mb-3">직접 작성하고 시작</h3>
-                                <p className="text-gray-400 mb-6">
-                                    이력서가 없으신가요? 핵심 내용만 빠르게 입력하고 바로 시작하세요.
-                                </p>
-                                <span className="text-purple-400 font-semibold group-hover:underline">
-                                    작성하러 가기 &rarr;
-                                </span>
-                            </motion.div>
+                                    <h3 className="text-2xl font-bold mb-3">직접 작성하고 시작</h3>
+                                    <p className="text-gray-400 mb-6">
+                                        이력서가 없으신가요? 핵심 내용만 빠르게 입력하고 바로 시작하세요.
+                                    </p>
+                                    <span className="text-purple-400 font-semibold group-hover:underline">
+                                        작성하러 가기 &rarr;
+                                    </span>
+                                </motion.div>
+                            </div>
                         </div>
                     ) : (
                         <div className="relative">
@@ -287,12 +377,12 @@ export default function HomePage() {
                                 </div>
                             </div>
                         </div>
-                    )}
+                    )} {/* Closing main content block */}
                 </motion.div>
             </section>
 
             {/* Popular Interviewers Ranking */}
-            <section className="container mx-auto px-6 py-16">
+            <section className="container mx-auto px-6 py-6">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Star } from 'lucide-react';
 import Link from 'next/link';
@@ -17,7 +18,15 @@ export default function PersonasPage() {
     const [activeFilter, setActiveFilter] = useState<FilterGroup>('ALL');
     const [startingInterview, setStartingInterview] = useState(false);
 
+
     useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/login');
+            }
+        };
+        checkAuth();
         fetchPersonas();
     }, []);
 
@@ -39,17 +48,24 @@ export default function PersonasPage() {
         setStartingInterview(true);
 
         try {
+            // Check auth again before starting
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/login');
+                return;
+            }
+
             // Get resume ID from localStorage
             const resumeId = localStorage.getItem('currentResumeId');
 
             if (!resumeId) {
-                alert('이력서를 먼저 업로드해주세요.');
+                alert('이력서를 먼저 업로드하거나 작성해주세요.');
                 router.push('/');
                 return;
             }
 
-            // Generate temporary user ID
-            const userId = crypto.randomUUID();
+            // Use authenticated user ID
+            const userId = session.user.id;
 
             // Create interview session
             const response = await fetch('/api/interview/start', {

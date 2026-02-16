@@ -10,16 +10,16 @@ export type MBTIGroup = 'SJ' | 'SP' | 'NF' | 'NT';
 // Persona Interface
 export interface MBTIPersona {
     id: string;
-    mbtiType: MBTIType;
-    group: MBTIGroup;
+    mbti_type: MBTIType;
+    mbti_group: MBTIGroup;
     name: string;
     role: string;
     description: string;
-    systemPrompt: string;
-    voiceId: string;
+    system_prompt: string;
+    voice_id: string;
     difficulty: 1 | 2 | 3 | 4 | 5;
     keywords: string[];
-    avatarUrl?: string;
+    avatar_url?: string;
 }
 
 // Resume Interfaces

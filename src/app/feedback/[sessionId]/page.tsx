@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Download, RotateCcw, Users, TrendingUp, Award, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -49,14 +51,24 @@ interface FeedbackData {
 
 export default function FeedbackPage({ params }: FeedbackProps) {
     const { sessionId } = use(params);
+    const router = useRouter();
     const [feedback, setFeedback] = useState<FeedbackData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
-
     const fetchedRef = useRef(false);
 
+
     useEffect(() => {
+        // Auth check
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                router.push('/login');
+            }
+        };
+        checkAuth();
+
         if (fetchedRef.current) return;
         fetchedRef.current = true;
 
