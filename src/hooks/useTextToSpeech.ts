@@ -14,7 +14,11 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
 
     const stop = useCallback(() => {
         if (sourceNodeRef.current) {
-            sourceNodeRef.current.stop();
+            try {
+                sourceNodeRef.current.stop();
+            } catch (e) {
+                // Ignore error if already stopped
+            }
             sourceNodeRef.current = null;
         }
         setIsPlaying(false);

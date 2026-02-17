@@ -175,7 +175,8 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
         // Only play TTS once using ref to prevent duplicate in Strict Mode
         if (!isMuted && !greetingPlayedRef.current) {
             greetingPlayedRef.current = true;
-            speak(greeting);
+            // Use persona.voice_id if available
+            speak(greeting, persona.voice_id);
         }
     };
 
@@ -233,7 +234,8 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
                             try {
                                 const parsed = JSON.parse(data);
                                 if (parsed.content) {
-                                    aiResponseText += parsed.content;
+                                    const content = parsed.content;
+                                    aiResponseText += content;
                                     setCurrentAiMessage(aiResponseText);
                                 }
                             } catch (e) {
@@ -254,7 +256,7 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
 
             setMessages(prev => [...prev, aiMessage]);
             setCurrentAiMessage('');
-            if (!isMuted) speak(aiResponseText);
+            if (!isMuted) speak(aiResponseText, sessionData?.persona?.voice_id);
 
         } catch (error) {
             console.error('Failed to send message:', error);
@@ -347,9 +349,14 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
                         {/* End Button */}
                         <button
                             onClick={() => router.push(`/feedback/${sessionId}`)}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-semibold transition-colors"
+                            disabled={questionCount < 5}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${questionCount < 5
+                                ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                                : 'bg-red-600 hover:bg-red-700 text-white'
+                                }`}
+                            title={questionCount < 5 ? "5회의 질의응답을 마쳐야 종료할 수 있습니다." : "면접 종료"}
                         >
-                            면접 종료
+                            면접 종료 {questionCount < 5 && `(${questionCount}/5)`}
                         </button>
                     </div>
                 </div>
@@ -442,10 +449,12 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
                         onClick={isRecording ? handleStopRecording : handleStartRecording}
                         className={`p-4 rounded-full transition-all ${isRecording
                             ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                            : 'bg-gray-700 hover:bg-gray-600'
+                            : isPlaying
+                                ? 'bg-gray-800 cursor-not-allowed opacity-50'
+                                : 'bg-gray-700 hover:bg-gray-600'
                             }`}
-                        disabled={streaming}
-                        title={isRecording ? "녹음 중지" : "음성 입력"}
+                        disabled={streaming || isPlaying}
+                        title={isRecording ? "녹음 중지" : isPlaying ? "면접관이 말하는 중입니다" : "음성 입력"}
                     >
                         {isRecording ? (
                             <div className="w-6 h-6 bg-white rounded-sm" /> // Stop Icon
@@ -466,14 +475,14 @@ export default function InterviewRoom({ params }: InterviewRoomProps) {
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder={isRecording ? "듣고 있습니다..." : "답변을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"}
-                        disabled={streaming || isRecording}
+                        placeholder={isRecording ? "듣고 있습니다..." : isPlaying ? "면접관이 말하고 있습니다..." : "답변을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"}
+                        disabled={streaming || isRecording || isPlaying}
                         className="flex-1 p-4 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-500 resize-none focus:outline-none focus:border-purple-500 disabled:opacity-50"
                         rows={1} // Reduced row count for better alignment
                     />
                     <button
                         onClick={sendMessage}
-                        disabled={streaming || !inputText.trim()}
+                        disabled={streaming || !inputText.trim() || isPlaying}
                         className="px-6 py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors flex items-center gap-2"
                     >
                         <Send className="h-5 w-5" />
