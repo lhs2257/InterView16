@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { supabase } from '@/lib/supabase/client';
 
 export const runtime = 'nodejs';
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 면접 세션 생성
-        const { data: session, error } = await supabase
+        const { data: session, error } = await supabaseAdmin
             .from('interview_sessions')
             .insert({
                 user_id: userId,
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 페르소나 정보도 함께 반환
-        const { data: persona } = await supabase
+        const { data: persona } = await supabaseAdmin
             .from('mbti_personas')
             .select('*')
             .eq('id', personaId)

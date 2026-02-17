@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai/client';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 1. 세션 정보 조회
-        const { data: session, error: sessionError } = await supabase
+        const { data: session, error: sessionError } = await supabaseAdmin
             .from('interview_sessions')
             .select('*')
             .eq('id', sessionId)
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 이미 피드백이 생성되었는지 확인
-        const { data: existingFeedback } = await supabase
+        const { data: existingFeedback } = await supabaseAdmin
             .from('feedback_reports')
             .select('*')
             .eq('session_id', sessionId)
@@ -51,14 +51,14 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. 페르소나 정보 조회
-        const { data: persona } = await supabase
+        const { data: persona } = await supabaseAdmin
             .from('mbti_personas')
             .select('*')
             .eq('id', session.persona_id)
             .single();
 
         // 3. 메시지 히스토리 조회
-        const { data: messages } = await supabase
+        const { data: messages } = await supabaseAdmin
             .from('interview_messages')
             .select('*')
             .eq('session_id', sessionId)
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         const generatedFeedback = JSON.parse(feedbackContent);
 
         // 6. 피드백 저장
-        const { data: savedFeedback, error: saveError } = await supabase
+        const { data: savedFeedback, error: saveError } = await supabaseAdmin
             .from('feedback_reports')
             .insert({
                 session_id: sessionId,
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
             // Check for unique constraint violation (code 23505)
             if (saveError.code === '23505') {
                 console.log('Feedback already exists, returning existing data.');
-                const { data: existingData } = await supabase
+                const { data: existingData } = await supabaseAdmin
                     .from('feedback_reports')
                     .select('*')
                     .eq('session_id', sessionId)
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 7. 세션 상태 업데이트
-        await supabase
+        await supabaseAdmin
             .from('interview_sessions')
             .update({ status: 'completed' })
             .eq('id', sessionId);

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase/client';
+import { supabaseAdmin } from '../supabase/server';
 import { createEmbedding } from '../openai/client';
 
 /**
@@ -20,7 +21,7 @@ export async function storeResumeEmbeddings(
         })
     );
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('resume_embeddings')
         .insert(embeddings);
 
@@ -67,7 +68,7 @@ export async function saveResume(
     fileName: string,
     parsedContent: any
 ) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('resumes')
         .insert({
             user_id: userId,
@@ -89,7 +90,7 @@ export async function saveResume(
  * 사용자의 이력서 목록을 가져옵니다
  */
 export async function getUserResumes(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('resumes')
         .select('*')
         .eq('user_id', userId)
@@ -106,7 +107,7 @@ export async function getUserResumes(userId: string) {
  * 특정 이력서를 조회합니다
  */
 export async function getResumeById(resumeId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('resumes')
         .select('*')
         .eq('id', resumeId)

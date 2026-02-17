@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const group = searchParams.get('group'); // SJ, SP, NF, NT
 
-        let query = supabase
+        let query = supabaseAdmin
             .from('mbti_personas')
             .select('*')
             .order('mbti_type', { ascending: true });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ export async function GET(
         const { id: sessionId } = await params;
 
         // 세션 정보 조회
-        const { data: session, error: sessionError } = await supabase
+        const { data: session, error: sessionError } = await supabaseAdmin
             .from('interview_sessions')
             .select('*')
             .eq('id', sessionId)
@@ -30,7 +30,7 @@ export async function GET(
         }
 
         // 페르소나 정보 조회
-        const { data: persona, error: personaError } = await supabase
+        const { data: persona, error: personaError } = await supabaseAdmin
             .from('mbti_personas')
             .select('*')
             .eq('id', session.persona_id)
@@ -41,7 +41,7 @@ export async function GET(
         }
 
         // 이력서 정보 조회
-        const { data: resume, error: resumeError } = await supabase
+        const { data: resume, error: resumeError } = await supabaseAdmin
             .from('resumes')
             .select('*')
             .eq('id', session.resume_id)
@@ -52,7 +52,7 @@ export async function GET(
         }
 
         // 메시지 히스토리 조회
-        const { data: messages, error: messagesError } = await supabase
+        const { data: messages, error: messagesError } = await supabaseAdmin
             .from('interview_messages')
             .select('*')
             .eq('session_id', sessionId)

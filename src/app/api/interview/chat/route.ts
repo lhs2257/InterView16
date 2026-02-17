@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai/client';
 import { buildInterviewContext, formatResumeContext } from '@/lib/prompts/mbti-personas';
 import { getResumeById } from '@/lib/supabase/rag';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 import { MBTIType } from '@/types';
 
 export const runtime = 'nodejs';
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
             });
 
             // 사용자 답변 저장
-            await supabase.from('interview_messages').insert({
+            await supabaseAdmin.from('interview_messages').insert({
                 session_id: sessionId,
                 role: 'candidate',
                 content: userMessage,
@@ -106,14 +106,14 @@ export async function POST(request: NextRequest) {
 
                     // AI 질문 저장
                     if (fullResponse) {
-                        await supabase.from('interview_messages').insert({
+                        await supabaseAdmin.from('interview_messages').insert({
                             session_id: sessionId,
                             role: 'interviewer',
                             content: fullResponse,
                         });
 
                         // 세션의 질문 카운트 증가
-                        await supabase
+                        await supabaseAdmin
                             .from('interview_sessions')
                             .update({ total_questions: conversationHistory.length / 2 + 1 })
                             .eq('id', sessionId);

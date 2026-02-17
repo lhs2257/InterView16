@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Insert into resumes table
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
             .from('resumes')
             .insert({
                 user_id: tempUserId || crypto.randomUUID(), // Handle temp user ID
@@ -43,9 +43,13 @@ export async function POST(request: NextRequest) {
             .select()
             .single();
 
+
         if (error) {
             console.error('Database error:', error);
-            throw new Error('이력서 저장 중 오류가 발생했습니다.');
+            return NextResponse.json(
+                { error: `Database Error: ${error.message}` },
+                { status: 500 }
+            );
         }
 
         return NextResponse.json({
@@ -53,10 +57,10 @@ export async function POST(request: NextRequest) {
             resume: data
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Resume creation error:', error);
         return NextResponse.json(
-            { error: '이력서 생성 실패' },
+            { error: error.message || '이력서 생성 실패' },
             { status: 500 }
         );
     }
